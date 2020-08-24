@@ -22,12 +22,8 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, \
       -Nbins     : NUmber of bins in the radial profile
     """
 
-    # Find halos of interest
+    # First, rebuild the Subfind table for this snapshot
     subfind_table = subfind_data.build_table(mpi, sim=path, snap=snap)
-    #subfind_table.select_halos(mpi, cut=1.0e12)
-    subfind_table.select_halos(mpi, cut='MAX')
-
-    if not mpi.Rank: print(' > Found {0:d} halo(s)'.format(len(subfind_table.tags)), flush=True)
 
     # Load the entire volume
     volume = volume_read.entire_snapshot_read(mpi, sim=path, snap=snap)
@@ -50,112 +46,118 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, \
                          'PartType4/Velocities',
                          ]
     volume.read_datasets(mpi, required_datasets)
+    volume.tag_subhalo_particles(mpi, subfind_table)
     volume.remove_wind_particles(mpi, required_datasets)
     volume.calculate_gas_temperatures(mpi)
     del volume.inte, volume.STsft
 
-    # Initiate halo class, distribute required particles to tasks, store
-    h = read_simulation.halo(volume, Nbins=Nbins)
+    # Now select halos of interest
+    #subfind_table.select_halos(mpi, cut=1.0e12)
+    subfind_table.select_halos(mpi, cut='MAX')
+    if not mpi.Rank: print(' > Found {0:d} halo(s)'.format(len(subfind_table.tags)), flush=True)
 
-    hp.halo_data_store(mpi, subfind_table, volume, Extent=extent, \
+    # Initiate halo class, distribute required particles to tasks, store
+    h = hp.halo(volume, Nbins=Nbins)
+
+    h.halo_data_store(mpi, subfind_table, volume, Extent=extent, \
                       R200scale=R200scale)
     del subfind_table, volume
 
     # Now loop over haloes that were sent to my task
-    hk = sorted(hp.halo_data.keys())
+    hk = sorted(h.halo_data.keys())
     if not mpi.Rank: print(' > Computing halo properties', flush=True)
     for j in range(0, len(hk), 1):
         if not mpi.Rank: print('  -{0}'.format(hk[j]), flush=True)
 
-        hp.set_up_halo(mpi, hk[j])
+        h.set_up_halo(mpi, hk[j])
 
         # Compute mass profiles
-        hp.compute_mass_profiles(mpi)
+        h.compute_mass_profiles(mpi)
 
         # Velocities and non-thermal pressure profiles
-        hp.compute_velocities_and_non_thermal_pressure(mpi)
+        h.compute_velocities_and_non_thermal_pressure(mpi)
 
         # Thermodynamic profiles
-        hp.compute_thermo_profiles(mpi)
+        h.compute_thermo_profiles(mpi)
 
         # Metallicity profiles
-        hp.compute_metallicity_profiles(mpi)
+        h.compute_metallicity_profiles(mpi)
 
         # Observable properties
-        hp.compute_observable_properties(mpi)
+        h.compute_observable_properties(mpi)
 
         # Centre of mass offset
-        hp.compute_centre_of_mass_offset(mpi)
+        h.compute_centre_of_mass_offset(mpi)
 
         # Compute NFW concentration - 1 parameter fit
-        hp.compute_concentration(mpi)
+        h.compute_concentration(mpi)
 
         # DM surface pressure
-        hp.compute_DM_surface_pressure(mpi)
+        h.compute_DM_surface_pressure(mpi)
 
         # Cumulative shape measurements
-        hp.compute_shape(mpi, aperture='500', ptype='GAS')
-        hp.compute_shape(mpi, aperture='200', ptype='GAS')
-        hp.compute_shape(mpi, aperture='Vir', ptype='GAS')
+        h.compute_shape(mpi, aperture='500', ptype='GAS')
+        h.compute_shape(mpi, aperture='200', ptype='GAS')
+        h.compute_shape(mpi, aperture='Vir', ptype='GAS')
 
-        hp.compute_shape(mpi, aperture='500', ptype='DM')
-        hp.compute_shape(mpi, aperture='200', ptype='DM')
-        hp.compute_shape(mpi, aperture='Vir', ptype='DM')
+        h.compute_shape(mpi, aperture='500', ptype='DM')
+        h.compute_shape(mpi, aperture='200', ptype='DM')
+        h.compute_shape(mpi, aperture='Vir', ptype='DM')
 
-        hp.compute_shape(mpi, aperture='500', ptype='STAR')
-        hp.compute_shape(mpi, aperture='200', ptype='STAR')
-        hp.compute_shape(mpi, aperture='Vir', ptype='STAR')
+        h.compute_shape(mpi, aperture='500', ptype='STAR')
+        h.compute_shape(mpi, aperture='200', ptype='STAR')
+        h.compute_shape(mpi, aperture='Vir', ptype='STAR')
 
         # Dark matter shape profile
         try:
-            hp.compute_shape_profile(mpi, ptype='DM')
+            h.compute_shape_profile(mpi, ptype='DM')
         except:
-            hp.q_dm  = np.zeros(Nbins, dtype=np.float)
-            hp.s_dm  = np.zeros(Nbins, dtype=np.float)
-            hp.Iv_dm = np.zeros((Nbins, 3, 3), dtype=np.float)
+            h.q_dm  = np.zeros(Nbins, dtype=np.float)
+            h.s_dm  = np.zeros(Nbins, dtype=np.float)
+            h.Iv_dm = np.zeros((Nbins, 3, 3), dtype=np.float)
 
         # Gas shape profile
         try:
-            hp.compute_shape_profile(mpi, ptype='GAS')
+            h.compute_shape_profile(mpi, ptype='GAS')
         except:
-            hp.q_gas  = np.zeros(Nbins, dtype=np.float)
-            hp.s_gas  = np.zeros(Nbins, dtype=np.float)
-            hp.Iv_gas = np.zeros((Nbins, 3, 3), dtype=np.float)
+            h.q_gas  = np.zeros(Nbins, dtype=np.float)
+            h.s_gas  = np.zeros(Nbins, dtype=np.float)
+            h.Iv_gas = np.zeros((Nbins, 3, 3), dtype=np.float)
         # Hot gas shape profile
         try:
-            hp.compute_shape_profile(mpi, ptype='GAS_HOT')
+            h.compute_shape_profile(mpi, ptype='GAS_HOT')
         except:
-            hp.q_ghot  = np.zeros(Nbins, dtype=np.float)
-            hp.s_ghot  = np.zeros(Nbins, dtype=np.float)
-            hp.Iv_ghot = np.zeros((Nbins, 3, 3), dtype=np.float)
+            h.q_ghot  = np.zeros(Nbins, dtype=np.float)
+            h.s_ghot  = np.zeros(Nbins, dtype=np.float)
+            h.Iv_ghot = np.zeros((Nbins, 3, 3), dtype=np.float)
         # Gas temperature
         try:
-            hp.compute_shape_profile(mpi, ptype='GAS_TEMP')
+            h.compute_shape_profile(mpi, ptype='GAS_TEMP')
         except:
-            hp.q_temp  = np.zeros(Nbins, dtype=np.float)
-            hp.s_temp  = np.zeros(Nbins, dtype=np.float)
-            hp.Iv_temp = np.zeros((Nbins, 3, 3), dtype=np.float)
+            h.q_temp  = np.zeros(Nbins, dtype=np.float)
+            h.s_temp  = np.zeros(Nbins, dtype=np.float)
+            h.Iv_temp = np.zeros((Nbins, 3, 3), dtype=np.float)
         # Gas pressure
         try:
-            hp.compute_shape_profile(mpi, ptype='GAS_PRES')
+            h.compute_shape_profile(mpi, ptype='GAS_PRES')
         except:
-            hp.q_pres  = np.zeros(Nbins, dtype=np.float)
-            hp.s_pres  = np.zeros(Nbins, dtype=np.float)
-            hp.Iv_pres = np.zeros((Nbins, 3, 3), dtype=np.float)
+            h.q_pres  = np.zeros(Nbins, dtype=np.float)
+            h.s_pres  = np.zeros(Nbins, dtype=np.float)
+            h.Iv_pres = np.zeros((Nbins, 3, 3), dtype=np.float)
         # Stellar shape profile
         try:
-            hp.compute_shape_profile(mpi, ptype='STAR')
+            h.compute_shape_profile(mpi, ptype='STAR')
         except:
-            hp.q_star  = np.zeros(Nbins, dtype=np.float)
-            hp.s_star  = np.zeros(Nbins, dtype=np.float)
-            hp.Iv_star = np.zeros((Nbins, 3, 3), dtype=np.float)
-
-        hp.save(mpi)
+            h.q_star  = np.zeros(Nbins, dtype=np.float)
+            h.s_star  = np.zeros(Nbins, dtype=np.float)
+            h.Iv_star = np.zeros((Nbins, 3, 3), dtype=np.float)
+        # Store halo properties in HDF5 file
+        h.save(mpi)
 
     # Now merge files
     mpi.comm.Barrier()
     if not mpi.Rank:
-        ftag = '{0}_Snap{1:03d}_z{2:d}p{3:02d}'.format(hp.fname, hp.snap, int(hp.redshift), int(100.0 * (hp.redshift - int(hp.redshift))))
+        ftag = '{0}_Snap{1:03d}_z{2:d}p{3:02d}'.format(h.fname, h.snap, int(h.redshift), int(100.0 * (h.redshift - int(h.redshift))))
         merge.merge_outputs(ftag)
     mpi.comm.Barrier()
     del h

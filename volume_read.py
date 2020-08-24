@@ -214,84 +214,86 @@ class entire_snapshot_read:
         del dset
         return
 
-    def remove_subhalos(self, mpi, subfind_table):
+    def tag_subhalo_particles(self, mpi, subfind_table):
         """
-        Using subfind table to remove particles bound to subhalos
+        Using subfind table to tag particles bound to subhalos
+
+        Arguments:
+          - mpi          : An instance of the mpi class
+          -subfind_table : An instance of the build_table class
         """
 
-        if mpi.Rank == 0: print(' > Removing particles bound to subhalos', flush=True)
-        # Compute my offset in the particle distribution
+        if mpi.Rank == 0: print(' > Tagging particles bound to subhalos', flush=True)
+        # Compute my task's offset in the particle distribution
         Psumf     = np.zeros((len(self.Fpart) + 1, 6), dtype=np.int)
         Psumf[1:] = np.cumsum(self.Fpart, axis=0)
         offsets   = Psumf[self.start]
         my_nparts = Psumf[self.finish] - offsets
         del Psumf
 
-        # Get central and unbound particle indices on task
-        gdx = self.return_central_indices(0, offsets[0], my_nparts[0], subfind_table)
-        ddx = self.return_central_indices(1, offsets[1], my_nparts[1], subfind_table)
-        sdx = self.return_central_indices(4, offsets[4], my_nparts[4], subfind_table)
-        bdx = self.return_central_indices(5, offsets[5], my_nparts[5], subfind_table)
+        # We now need to build the length and offset of each subhalo
+        grp_off     = np.zeros(subfind_table.GrLenType.shape, dtype=np.int)
+        grp_off[1:] = np.cumsum(subfind_table.GrLenType[:-1], axis=0)
 
-        # Now remove particles bound to subhalos
-        keys = sorted(self.__dict__.keys())
-        for x in keys:
-            if x in ['BoxSize', 'Fpart', 'Ulength', 'Umass', 'Uvelc', 'axp', 'files',
-                     'finish', 'hub', 'mass_tab', 'npt', 'omega_b', 'omega_l', 'omega_m',
-                     'path', 'redshift', 'start']: continue
+        store = []
+        for j in range(0, len(subfind_table.FirstSub), 1):
+            tmp      = subfind_table.SubLenType[subfind_table.FirstSub[j]:subfind_table.FirstSub[j]+subfind_table.Nsubs[j]]
+            soff     = np.zeros(tmp.shape, dtype=np.int)
+            soff[1:] = np.cumsum(tmp[:-1], axis=0)
+            store.append(soff)
+        subs_len = np.array(store)
 
-            if x == 'pos':
-                self.pos    = self.pos[gdx]
-            elif x == 'rho':
-                self.rho    = self.rho[gdx]
-            elif x == 'ne_nh':
-                self.ne_nh  = self.ne_nh[gdx]
-            elif x == 'inte':
-                self.inte   = self.inte[gdx]
-            elif x == 'mass':
-                self.mass   = self.mass[gdx]
-            elif x == 'DMpos':
-                self.DMpos  = self.DMpos[ddx]
-            elif x == 'DMmass':
-                self.DMmass = self.DMmass[ddx]
-            elif x == 'STpos':
-                self.STpos  = self.STpos[sdx]
-            elif x == 'STmass':
-                self.STmass = self.STmass[sdx]
-            elif x == 'STsft':
-                self.STsft  = self.STsft[sdx]
-            else:
-                print(' SUBHALO REMOVAL NOT SET FOR {0}!!!'.format(x), flush=True)
-        del gdx, ddx, sdx, bdx
+        # Find indices of those particles bound to subhalos
+        # GAS
+        if not my_nparts[0] <= 0:
+            self.sub       = np.zeros(my_nparts[0], dtype=np.int)
+            shx            = self.subhalo_indices(0, offsets[0], grp_off, subs_len, my_nparts[0])
+            self.sub[shx] += 1
+        # DM
+        if not my_nparts[1] <= 0:
+            self.DMsub       = np.zeros(my_nparts[1], dtype=np.int)
+            shx              = self.subhalo_indices(1, offsets[1], grp_off, subs_len, my_nparts[1])
+            self.DMsub[shx] += 1
+        # STARS
+        if not my_nparts[4] <= 0:
+            self.STsub       = np.zeros(my_nparts[4], dtype=np.int)
+            shx              = self.subhalo_indices(4, offsets[4], grp_off, subs_len, my_nparts[4])
+            self.STsub[shx] += 1
+        del grp_off, subs_len, shx
         return
 
-    def return_central_indices(self, ptype, offset, my_npart, subfind_table):
+    def subhalo_indices(self, ptype, offset, grp_offs, sub_len_type, my_npart):
         """
         Return indices of bound particles
+
+        Arguments:
+          -ptype        : Particle type of interest [INTEGER]
+          -offset       : Offset in the simulation data to particles on my task [INTEGER]
+          -grp_offs     : Offset of every FOF group in the simulation [ARRAY]
+          -sub_len_type : Length of every subhalo for given particle type [ARRAY]
+          -my_npart     : Number of particles on my task [INTEGER]
+
+        Returns:
+          -shx : ARRAY containing the indices of all particles bound to subhalos
         """
 
-        # First find all subhalo bound indices
+        # Find all subhalo bound indices
         shx = []
-        for j in range(0, len(subfind_table.SubLenType), 1):
-            if len(subfind_table.SubLenType[j]) <= 1: continue
-            st  = subfind_table.SubLenType[j][1]
-            fh  = subfind_table.SubLenType[j][-1]
+        for j in range(0, len(sub_len_type), 1):
+            if len(sub_len_type[j]) <= 1: continue
+            st = sub_len_type[j][1]
+            fh = sub_len_type[j][-1]
 
-            if fh[ptype] + subfind_table.OffType[j,ptype] < offset or \
-               st[ptype] + subfind_table.OffType[j,ptype] > offset + my_npart: continue
+            if fh[ptype] + grp_offs[j,ptype] < offset or \
+               st[ptype] + grp_offs[j,ptype] > offset + my_npart: continue
 
-            shx.append(np.arange(fh[ptype] - st[ptype]) + st[ptype] \
-                       + subfind_table.OffType[j,ptype])
+            shx.append(np.arange(fh[ptype] - st[ptype]) + st[ptype] + grp_offs[j,ptype])
 
+        # Create array of indices and return
         if len(shx) > 0:
             shx = np.hstack(shx) - offset
-            shx = np.where((shx >= 0) & (shx < my_npart))[0]
-            idx = np.arange(my_npart)
-            idx = np.setdiff1d(idx, shx)
-            del shx
-        else:
-            idx = np.arange(my_npart)
-        return idx
+            shx = shx[shx < my_npart]
+        return shx
 
     def calculate_gas_temperatures(self, mpi):
         """ 

@@ -255,3 +255,13 @@ def rotate_vectors_Iv(Nb, RM, pos):
 
     for k in np.arange(Nb): pos[k] = np.dot(RM[k], pos[k].T).T
     return pos
+
+def vnorm_rp(vectors):
+    """
+    Normalize an array of vectors
+
+    Arguments:
+      -vectors : A 2D ARRAY of vectors to be normalized
+    """
+
+    return (vectors.T / np.sqrt(np.sum(vectors ** 2.0, axis=1))).T

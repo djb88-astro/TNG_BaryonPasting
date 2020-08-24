@@ -22,11 +22,8 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, \
       -Nbins     : NUmber of bins in the radial profile
     """
 
-    # Find halos of interest
+    # First, rebuild the Subfind table for this snapshot
     subfind_table = subfind_data.build_table(mpi, sim=path, snap=snap)
-    subfind_table.select_halos(mpi, cut=1.0e12)
-
-    if not mpi.Rank: print(' > Found {0:d} halo(s)'.format(len(subfind_table.tags)), flush=True)
 
     # Load the entire volume
     volume = volume_read.entire_snapshot_read(mpi, sim=path, snap=snap)
@@ -36,9 +33,15 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, \
                          'PartType1/Masses',
                          'PartType1/Velocities']
     volume.read_datasets(mpi, required_datasets)
+    volume.tag_subhalo_particles(mpi, subfind_table)
+
+    # Now select halos of interest
+    #subfind_table.select_halos(mpi, cut=1.0e12)
+    subfind_table.select_halos(mpi, cut='MAX')
+    if not mpi.Rank: print(' > Found {0:d} halo(s)'.format(len(subfind_table.tags)), flush=True)
 
     # Initiate halo class, distribute required particles to tasks, store
-    h = read_simulation.halo(volume, Nbins=Nbins)
+    h = hp.halo(volume, Nbins=Nbins)
 
     h.halo_data_store(mpi, subfind_table, volume, Extent=extent, \
                       R200scale=R200scale)
@@ -79,7 +82,7 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, \
             h.q_dm  = np.zeros(Nbins, dtype=np.float)
             h.s_dm  = np.zeros(Nbins, dtype=np.float)
             h.Iv_dm = np.zeros((Nbins, 3, 3), dtype=np.float)
-
+        # Store halo properties in HDF5 file
         h.save(mpi)
 
     # Now merge files
@@ -100,7 +103,7 @@ if __name__ == "__main__":
     inputs = parser.parse_args()
 
     # Simulation of interest
-    paths = ['/n/hernquistfs3/IllustrisTNG/Runs/L75n1820TNG_DM/output']
+    paths = ['/n/hernquistfs3/IllustrisTNG/Runs/L75n455TNG_DM/output']
 
     # Snapshots of interest
     snapshots = np.arange(inputs.final - inputs.start + 1) + inputs.start

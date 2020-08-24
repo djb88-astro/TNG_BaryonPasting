@@ -151,7 +151,6 @@ class halo:
                     pos = np.where(pos < -0.5 * dims, pos + dims, pos)
                     self.halo_data[subfind_table.tags[j]]['Pos'] = pos
                     del pos
-
             if 'rho' in keys:
                 array = mpi.gatherv_single(volume.rho[gdx], root=destination)
                 if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['Rho'] = array
@@ -164,6 +163,9 @@ class halo:
             if 'mass' in keys:
                 array = mpi.gatherv_single(volume.mass[gdx], root=destination)
                 if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['Mass'] = array
+            if 'sub' in keys:
+                array = mpi.gatherv_single(volume.sub[gdx], root=destination)
+                if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['Sub'] = array
             if 'temp' in keys:
                 array = mpi.gatherv_single(volume.temp[gdx], root=destination)
                 if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['Temp'] = array
@@ -182,10 +184,12 @@ class halo:
                     pos = np.where(pos < -0.5 * dims, pos + dims, pos)
                     self.halo_data[subfind_table.tags[j]]['DMPos'] = pos
                     del pos
-
             if 'DMmass' in keys:
                 array = mpi.gatherv_single(volume.DMmass[ddx], root=destination)
                 if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['DMMass'] = array
+            if 'DMsub' in keys:
+                array = mpi.gatherv_single(volume.DMsub[ddx], root=destination)
+                if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['DMSub'] = array
             if 'DMvelc' in keys:
                 array = mpi.gatherv_single(np.zeros(volume.DMvelc[ddx].shape) \
                                            + volume.DMvelc[ddx], root=destination)
@@ -201,17 +205,19 @@ class halo:
                     pos = np.where(pos < -0.5 * dims, pos + dims, pos)
                     self.halo_data[subfind_table.tags[j]]['STPos'] = pos
                     del pos
-
             if 'STmass' in keys:
                 array = mpi.gatherv_single(volume.STmass[sdx], root=destination)
                 if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['STMass'] = array
-            if 'STzmet' in keys:
-                array = mpi.gatherv_single(volume.STzmet[sdx], root=destination)
-                if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['STZmet'] = array
+            if 'STsub' in keys:
+                array = mpi.gatherv_single(volume.STsub[sdx], root=destination)
+                if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['STSub'] = array
             if 'STvelc' in keys:
                 array = mpi.gatherv_single(np.zeros((len(sdx), 3), dtype=np.float) \
                                            + volume.STvelc[sdx], root=destination)
                 if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['STVelc'] = array
+            if 'STzmet' in keys:
+                array = mpi.gatherv_single(volume.STzmet[sdx], root=destination)
+                if mpi.Rank == destination: self.halo_data[subfind_table.tags[j]]['STZmet'] = array
 
             # Add key SUBFIND quanitites
             if mpi.Rank == destination:
@@ -269,14 +275,17 @@ class halo:
         if 'Ne_Nh' in keys:  self.ne_nh  = self.halo_data[tag]['Ne_Nh']
         if 'Pos' in keys:    self.pos    = self.halo_data[tag]['Pos']
         if 'Rho' in keys:    self.rho    = self.halo_data[tag]['Rho']
+        if 'Sub' in keys:    self.sub    = self.halo_data[tag]['Sub']
         if 'Temp' in keys:   self.temp   = self.halo_data[tag]['Temp']
         if 'Velc' in keys:   self.velc   = self.halo_data[tag]['Velc']
         if 'Zmet' in keys:   self.zmet   = self.halo_data[tag]['Zmet']
         if 'DMMass' in keys: self.DMmass = self.halo_data[tag]['DMMass']
         if 'DMPos' in keys:  self.DMpos  = self.halo_data[tag]['DMPos']
+        if 'DMSub' in keys:  self.DMsub  = self.halo_data[tag]['DMSub']
         if 'DMVelc' in keys: self.DMvelc = self.halo_data[tag]['DMVelc']
         if 'STMass' in keys: self.STmass = self.halo_data[tag]['STMass']
         if 'STPos' in keys:  self.STpos  = self.halo_data[tag]['STPos']
+        if 'STSub' in keys:  self.STsub  = self.halo_data[tag]['STSub']
         if 'STVelc' in keys: self.STvelc = self.halo_data[tag]['STVelc']
         if 'STZmet' in keys: self.STzmet = self.halo_data[tag]['STZmet']
         del keys, self.halo_data[tag]
@@ -529,19 +538,20 @@ class halo:
         if not mpi.Rank: print(' > Computing non-thermal pressure profile', flush=True)
 
         # Remove bulk, add Hubble flow -- !!! TNG COSMOLOGY HARD WIRED !!!
-        H_z  = np.sqrt(0.3089 * (1.0 + self.redshift) ** 3.0 + 0.6911) * 100.0 * self.hub * ct.km_cm
+        H_z  = np.sqrt(0.3089 * (1.0 + self.redshift) ** 3.0 + 0.6911) \
+               * 100.0 * self.hub * ct.km_cm
 
         if 'rad' in self.__dict__.keys():
-            ghub = (it.vnorm_rp(self.pos).T * H_z * self.rad * self.R200 / ct.Mpc_cm).T
+            ghub = (sh.vnorm_rp(self.pos).T * H_z * self.rad * self.R200 / ct.Mpc_cm).T
             Gvel = self.velc - self.Vbulk + ghub
             vmag = np.sqrt(((Gvel - ghub) ** 2.0).sum(axis=-1))
             #del ghub
         if 'DMrad' in self.__dict__.keys():
-            dhub = (it.vnorm_rp(self.DMpos).T * H_z * self.DMrad * self.R200 / ct.Mpc_cm).T
+            dhub = (sh.vnorm_rp(self.DMpos).T * H_z * self.DMrad * self.R200 / ct.Mpc_cm).T
             Dvel = self.DMvelc - self.Vbulk + dhub
             del dhub
         if 'STrad' in self.__dict__.keys():
-            shub = (it.vnorm_rp(self.STpos).T * H_z * self.STrad * self.R200 / ct.Mpc_cm).T
+            shub = (sh.vnorm_rp(self.STpos).T * H_z * self.STrad * self.R200 / ct.Mpc_cm).T
             Svel = self.STvelc - self.Vbulk + shub
             del shub
         del H_z
@@ -1018,7 +1028,7 @@ class halo:
         idx      = np.where((self.DMrad >= 0.8 * self.Rvir / self.R200) \
                             & (self.DMrad < self.Rvir / self.R200))[0]
         vol      = (4.0 / 3.0) * np.pi * (self.Rvir ** 3.0 - (0.8 * self.Rvir) ** 3.0)
-        dhub     = (it.vnorm_rp(self.DMpos[idx]).T * H_z * self.DMrad[idx] / ct.Mpc_cm).T
+        dhub     = (sh.vnorm_rp(self.DMpos[idx]).T * H_z * self.DMrad[idx] / ct.Mpc_cm).T
         Dvel     = self.DMvelc[idx] - self.Vbulk + dhub
         self.Pdm = (1.0 / 3.0) * np.sum(self.DMmass[idx] * (Dvel ** 2.0).sum(axis=-1)) / vol
         del idx, vol, dhub, Dvel
@@ -1041,19 +1051,19 @@ class halo:
 
         # GAS
         idx        = np.where(self.rad <= self.Rvir)[0]
-        ghub       = (it.vnorm_rp(self.pos[idx]).T * H_z * self.rad[idx] / ct.Mpc_cm).T
+        ghub       = (sh.vnorm_rp(self.pos[idx]).T * H_z * self.rad[idx] / ct.Mpc_cm).T
         Gvel       = self.velc[idx] - self.Vbulk + ghub
         self.Tkin += np.sum(0.5 * self.mass[idx] * (Gvel ** 2.0).sum(axis=-1))
         del ghub, Gvel
         # DM
         idx        = np.where(self.DMrad <= self.Rvir)[0]
-        dhub       = (it.vnorm_rp(self.DMpos[idx]).T * H_z * self.DMrad[idx] / ct.Mpc_cm).T
+        dhub       = (sh.vnorm_rp(self.DMpos[idx]).T * H_z * self.DMrad[idx] / ct.Mpc_cm).T
         Dvel       = self.DMvelc[idx] - self.Vbulk + dhub
         self.Tkin += np.sum(0.5 * self.DMmass[idx] * (Dvel ** 2.0).sum(axis=-1))
         del dhub, Dvel
         # STARS
         idx        = np.where(self.STrad <= self.Rvir)[0]
-        shub       = (it.vnorm_rp(self.STpos[idx]).T * H_z * self.STrad[idx] / ct.Mpc_cm).T
+        shub       = (sh.vnorm_rp(self.STpos[idx]).T * H_z * self.STrad[idx] / ct.Mpc_cm).T
         Svel       = self.STvelc[idx] - self.Vbulk + shub
         self.Tkin += np.sum(0.5 * self.STmass[idx] * (Svel ** 2.0).sum(axis=-1))
         del shub, Svel
