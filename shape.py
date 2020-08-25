@@ -235,6 +235,13 @@ def compute_eigenvalues_and_vectors_radial(Iten):
 def rotate_vectors_cm(RM, pos):
     """
     Rotate vectors by a rotation matrix
+
+    Arguments:
+      -RM  : Rotation matrix [2D ARRAY]
+      -pos : ARRAY of particle positions
+
+    Returns:
+      -Rotated position vectors
     """
 
     return np.dot(RM, pos.T).T
@@ -242,6 +249,14 @@ def rotate_vectors_cm(RM, pos):
 def rotate_vectors_rp(idx, RM, pos):
     """
     Rotate a series of vectors by a series of rotation matrices
+
+    Arguments:
+      -idx : Digitized indices for particles [ARRAY]
+      -RM  : Rotation matrix [2D ARRAY]
+      -pos : ARRAY of particle positions
+
+    Returns:
+      -Rotated position vectors
     """
 
     tmp = np.zeros(pos.shape, dtype=np.float)
@@ -251,6 +266,14 @@ def rotate_vectors_rp(idx, RM, pos):
 def rotate_vectors_Iv(Nb, RM, pos):
     """
     Rotate a series of eigenvectors by a series of rotation matrices
+
+    Arguments:
+      -Nb  : Number of bins [INTEGER]
+      -RM  : Rotation matrix [2D ARRAY]
+      -pos : ARRAY of particle positions
+
+    Returns:
+      -Rotated position vectors
     """
 
     for k in np.arange(Nb): pos[k] = np.dot(RM[k], pos[k].T).T
@@ -262,6 +285,9 @@ def vnorm_rp(vectors):
 
     Arguments:
       -vectors : A 2D ARRAY of vectors to be normalized
+
+    Returns:
+      -Normalized vector ARRAY
     """
 
     return (vectors.T / np.sqrt(np.sum(vectors ** 2.0, axis=1))).T

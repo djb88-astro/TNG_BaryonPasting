@@ -4,7 +4,14 @@ import numpy as np
 import constants as ct
 from scipy.spatial import cKDTree
 
-""" Class to read required datasets of entire snapshot """
+""" 
+Class to read required datasets of entire simulation snapshot
+
+Arguments:
+  -mpi  : Instance of the MPI environment class
+  -sim  : Path to the simulation of interest [STRING]
+  -snap : Snapshot of interest [INTEGER]
+"""
 
 class entire_snapshot_read:
     def __init__(self, mpi, sim='/n/hernquistfs3/IllustrisTNG/Runs/L205n2500TNG/output', snap=99):
@@ -24,9 +31,9 @@ class entire_snapshot_read:
         Find all files associated with a snapshot
 
         Arguments:
-          -mpi  : Instance of the mpi class
-          -sim  : Path to the simulation of interest
-          -snap : Snapshot of interest
+          -mpi  : Instance of the MPI environment class
+          -sim  : Path to the simulation of interest [STRING]
+          -snap : Snapshot of interest [INTEGER]
         """
 
         # Find files
@@ -100,8 +107,8 @@ class entire_snapshot_read:
         Reads all specifed datasets
 
         Arguments:
-          -mpi       : MPI class instance
-          -rqd_dsets : List of required datasets
+          -mpi       : Instance of the MPI environment class
+          -rqd_dsets : LIST of required datasets
         """
 
         for x in rqd_dsets:
@@ -219,7 +226,7 @@ class entire_snapshot_read:
         Using subfind table to tag particles bound to subhalos
 
         Arguments:
-          - mpi          : An instance of the mpi class
+          -mpi           : Instance of the MPI environment class
           -subfind_table : An instance of the build_table class
         """
 
@@ -308,6 +315,10 @@ class entire_snapshot_read:
     def remove_wind_particles(self, mpi, dsets):
         """
         Remove PartType4 wind particles
+
+        Arguments:
+          -mpi   : Instance of the MPI environment class
+          -dsets : LIST of required datasets
         """
 
         # Check we have formation time for removal

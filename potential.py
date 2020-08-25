@@ -8,6 +8,22 @@ spec = [('p', float64[:,:]), ('m', float64[:]), ('s', float64[:]), ('Mtot', floa
         ('CoM', float64[:]), ('delta', float64), ('Left', boolean), ('Right', boolean),
         ('Cleft', optional(node_type)), ('Cright', optional(node_type))]
 
+"""
+Functions here build a KD of particle positions and computes the
+gravitional potential of the halo from it.
+"""
+
+"""
+Class creates a KD-tree from the particle distribtion. Heavy use
+of Numba to try and make it computationally faster, however this
+is still very expensive.
+
+Arguments:
+  -points    : 2D ARRAY of particle positions
+  -masses    : ARRAY of particle weights, typically their mass
+  -softening : Value of the gravitational force softening length [FLOAT]
+"""
+
 @jitclass(spec)
 class Node(object):
     def __init__(self, points, masses, softening):
@@ -51,6 +67,9 @@ class Node(object):
     def Generate_Children(self, axis):
         """
         Generate children of current branch
+
+        Arguments:
+          -axis : Current Euclidean axis being considered
         """
 
         if self.Leaf: return False
@@ -79,6 +98,14 @@ node_type.define(Node.class_type.instance_type)
 def construct_tree(p, m, s):
     """
     Build a KD tree
+
+    Arguments:
+      -p : Position
+      -m : Weight
+      -s : Node width
+
+    Returns:
+      -Root : KD tree class instance
     """
 
     Root = Node(p, m, s)
@@ -111,6 +138,15 @@ def construct_tree(p, m, s):
 def compute_potential_via_tree(p, tree, G=6.67430e-8, theta=1.0):
     """
     Compute the potential of each particle -- assumes CGS units
+
+    Arguments:
+      -p     : Position [ARRAY]
+      -tree  : Instance of the KD tree class 
+      -G     : Newton's gravitational constant in CGS units [FLOAT]
+      -theta : Opening angle, determines the force accuracy [FLOAT]
+
+    Returns:
+      -pot : Gravitational potential at this positions
     """
 
     pot = np.zeros(len(p))
@@ -121,7 +157,16 @@ def compute_potential_via_tree(p, tree, G=6.67430e-8, theta=1.0):
 @njit(fastmath=True)
 def tree_walk(pos, tree, phi, theta=1.0):
     """                                                                         
-    Does the hard work of walking the tree and computing the potential          
+    Does the hard work of walking the tree and computing the potential
+
+    Arguments:
+      -pos   : 2D ARRAY of positions
+      -tree  : Instance of the KD tree class
+      -phi   : Gravitional potential [FLOAT]
+      -theta : Opening angle, determines the force accuracy [FLOAT]
+
+    Returns:
+      -phi : Gravitional potential [FLOAT]
     """
 
     # Distance to point
@@ -143,7 +188,14 @@ def tree_walk(pos, tree, phi, theta=1.0):
 @njit(fastmath=True)
 def kernel(r, h):
     """                                                                         
-    Compute the cubic spline softened kernel                                    
+    Compute the cubic spline softened kernel
+
+    Arguments:
+      -r : Radial distance [FLOAT]
+      -h : Gravitational softening length [FLOAT]
+
+    Returns:
+      Kernel value
     """
 
     if h == 0.0: return -1.0 / r

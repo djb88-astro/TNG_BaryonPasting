@@ -3,8 +3,15 @@ import h5py
 import numpy as np
 import constants as ct
 
-""" Class to rebuild the tables stored in the subfind files. Now works in  """
-""" parallel.                                                              """
+""" 
+Class to rebuild the tables stored in the subfind files. Utilises
+MPI4Py to split the read work.
+
+Arguments:
+  -mpi  : Instance of the MPI environment class
+  -sim  : Path to the simulation of interest [STRING]
+  -snap : Snapshot of interest [INTEGER]
+"""
 
 class build_table:
     def __init__(self, mpi, sim='/n/hernquistfs3/IllustrisTNG/Runs/L205n2500TNG/output', snap=99):
@@ -48,7 +55,7 @@ class build_table:
         Read basic info. from the header, calculate other basic props.
 
         Arguments:
-          -mpi : MPI environment class instance
+          -mpi : Instance of the MPI environment class
         """
 
         f = h5py.File(self.files[mpi.Rank % len(self.files)], 'r')
@@ -68,7 +75,7 @@ class build_table:
         Reads quantities of interest
 
         Arguments:
-          -mpi : MPI environment class instance
+          -mpi : Instance of the MPI environment class
         """
 
         self.qoi = ['Group/GroupPos',
@@ -103,7 +110,7 @@ class build_table:
         Split files over tasks available
 
         Arguments:
-          -mpi : MPI environment class instance
+          -mpi : Instance of the MPI environment class
         """
 
         num_files   = int(len(self.files) / mpi.NProcs)
@@ -123,10 +130,10 @@ class build_table:
         Read a given quantity from the Subfind file and stores it
 
         Arguments:
-          -mpi      : MPI environment class instance
-          -groups   : Number of Friends-of-Friends groups
-          -subgroup : Number of SUBFIND subgroups
-          -x        : Subfind table quantity of interest
+          -mpi      : Instance of the MPI environment class
+          -groups   : Number of Friends-of-Friends groups [INTEGER]
+          -subgroup : Number of SUBFIND subgroups [INTEGER]
+          -x        : Subfind table quantity of interest [STRING]
         """
 
         if mpi.Rank == 0: print('  -{0}'.format(x), flush=True)
@@ -199,8 +206,8 @@ class build_table:
         Pick out halos that are interesting, work out start/finish
 
         Arguments:
-          -mpi : MPI environment class instance
-          -cut : Variable determining haloes to select - can be STRING, LIST or FLOAT
+          -mpi : Instance of the MPI environment class
+          -cut : Variable determining haloes to select - [STRING, LIST or FLOAT]
         """
 
         if cut == 'MAX':
@@ -260,7 +267,7 @@ class build_table:
         Deals with any errors that crop up
 
         Arguments:
-          -mpi  : MPI environment class instance
+          -mpi  : Instance of the MPI environment class
           -code : Error code
         """
 

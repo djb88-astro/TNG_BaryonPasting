@@ -1,6 +1,12 @@
 import numpy as np
 from mpi4py import MPI
 
+"""
+This class combines various MPI functions together, which makes it
+easier to call them and provides pre-written examples for students
+to see.
+"""
+
 class mpi:
     def __init__(self):
         self.comm   = MPI.COMM_WORLD

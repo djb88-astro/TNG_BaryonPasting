@@ -342,9 +342,10 @@ class halo:
         Compute shape within aperture
 
         Arguments:
-          -mpi      : An instance of the mpi class
-          -aperture : STRING defining the radial aperture of interest
-          -ptype    : STRING defining the particle type (e.g. dark matter) of interest
+          -mpi         : An instance of the mpi class
+          -aperture    : STRING defining the radial aperture of interest
+          -ptype       : STRING defining the particle type (e.g. dark matter) of interest
+          -remove_subs : BOOLEAN, if TRUE remove particles bound to substructures
         """
 
         if not mpi.Rank: print(' > Computing {0} shape - aperture: {1}'.format(ptype, aperture), \
@@ -442,8 +443,9 @@ class halo:
         Iteratively compute the shape profile of the gas cells
 
         Arguments:
-          -mpi   : An instance of the mpi class
-          -pytpe : STRING defining the particle type (e.g. dark matter) of interest
+          -mpi         : An instance of the mpi class
+          -pytpe       : STRING defining the particle type (e.g. dark matter) of interest
+          -remove_subs : BOOLEAN, if TRUE remove particles bound to substructures
         """
 
         if not mpi.Rank: print(' > Computing {0} iterative inertial tensor'.format(ptype), \
@@ -826,8 +828,8 @@ class halo:
         self.Ysz_pro = np.histogram(self.rad[hdx], bins=self.bins, weights=Ysz)[0]
 
         # Ysz aperture values
-        self.Ysz_500  = Ysz[self.rad[hdx] <= self.R500 / self.R200].sum()
-        self.Ysz_200  = Ysz[self.rad[hdx] <= 1.0].sum()
+        self.Ysz_500   = Ysz[self.rad[hdx] <= self.R500 / self.R200].sum()
+        self.Ysz_200   = Ysz[self.rad[hdx] <= 1.0].sum()
         self.Ysz_5r500 = Ysz[self.rad[hdx] <= 5.0 * self.R500 / self.R200].sum()
         del Ysz
 
