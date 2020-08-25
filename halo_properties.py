@@ -390,9 +390,9 @@ class halo:
         if len(sdx) > 0:
             q, s, Ivectors = sh.iterative_cumulative_shape_measure(pos[sdx], mass[sdx], rmax=ap)
         else:
-            q        = 0
-            s        = 0
-            Ivectors = np.zeros((3, 3))
+            q        = 0.0
+            s        = 0.0
+            Ivectors = np.zeros((3, 3), dtype=np.float)
 
         # Store and return
         if ptype == 'GAS':
@@ -437,7 +437,7 @@ class halo:
         del s, q, Ivectors
         return
 
-    def compute_shape_profile(self, mpi, ptype='GAS'):
+    def compute_shape_profile(self, mpi, ptype='GAS', remove_subs=True):
         """
         Iteratively compute the shape profile of the gas cells
 
@@ -473,8 +473,24 @@ class halo:
             print('ERROR:\n --> {0} particle type not implemented!\nEXITING...'.format(ptype))
             quit()
 
-        # Actual shape profile measurement
-        q, s, Ivectors = sh.iterative_radial_shape_profile(pos, mass, self.R200 / ct.Mpc_cm)
+        # Remove those in substuctures -- if required
+        if remove_subs:
+            if ptype == 'GAS':
+                sdx = np.where(self.sub == 0)[0]
+            elif ptype == 'DM':
+                sdx = np.where(self.DMsub == 0)[0]
+            elif ptype == 'STAR':
+                sdx = np.where(self.STsub == 0)[0]
+        else:
+            sdx = np.arange(len(mass))
+
+        # Actual shape profile measurement -- check for no particles
+        if len(sdx) > 0:
+            q, s, Ivectors = sh.iterative_radial_shape_profile(pos, mass, self.R200 / ct.Mpc_cm)
+        else:
+            q        = np.zeros(self.Nbins, dtype=np.float)
+            s        = np.zeros(self.Nbins, dtype=np.float)
+            Ivectors = np.zeros((self.Nbins, 3, 3), dtype=np.float)
 
         # Store and return
         if ptype == 'GAS':

@@ -82,6 +82,7 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, \
             h.q_dm  = np.zeros(Nbins, dtype=np.float)
             h.s_dm  = np.zeros(Nbins, dtype=np.float)
             h.Iv_dm = np.zeros((Nbins, 3, 3), dtype=np.float)
+
         # Store halo properties in HDF5 file
         h.save(mpi)
 
