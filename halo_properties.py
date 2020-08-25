@@ -337,7 +337,7 @@ class halo:
         del DMoff, SToff
         return
 
-    def compute_shape(self, mpi, aperture='500', ptype='GAS'):
+    def compute_shape(self, mpi, aperture='500', ptype='GAS', remove_subs=True):
         """
         Compute shape within aperture
 
@@ -375,8 +375,24 @@ class halo:
             print('ERROR:\n --> {0} particle type not implemented!\nEXITING...'.format(ptype))
             quit()
 
-        # Actual shape calculation
-        q, s, Ivectors = sh.iterative_cumulative_shape_measure(pos, mass, rmax=ap)
+        # Remove those in substuctures -- if required
+        if remove_subs:
+            if ptype == 'GAS':
+                sdx = np.where(self.sub == 0)[0]
+            elif ptype == 'DM':
+                sdx = np.where(self.DMsub == 0)[0]
+            elif ptype == 'STAR':
+                sdx = np.where(self.STsub == 0)[0]
+        else:
+            sdx = np.arange(len(mass))
+
+        # Actual shape calculation -- check for empty aperture
+        if len(sdx) > 0:
+            q, s, Ivectors = sh.iterative_cumulative_shape_measure(pos[sdx], mass[sdx], rmax=ap)
+        else:
+            q        = 0
+            s        = 0
+            Ivectors = np.zeros((3, 3))
 
         # Store and return
         if ptype == 'GAS':
