@@ -11,7 +11,7 @@ Therefore, feel free to use this code, but make sure you have a HPC facility han
 Requirements
 ------------
 
-This has been tested and run using `python` `v3.7.3`. It will definitely not run if you are a `python2' user.
+This has been tested and run using `python` `v3.7.3`. It will definitely not run if you are a `python2` user.
 
 ### Packages
 
