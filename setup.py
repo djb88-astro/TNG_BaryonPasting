@@ -1,9 +1,9 @@
 import setuptools
 
 setuptools.setup(
-    name="bp_tng_extraction",
+    name="tng_baryonpasting_extraction",
     version="3.0.1",
-    description="TNG halo properties calculations for Baryon Pasters",
+    description="TNG halo properties calculations for Baryon Pasters collaboration",
     url="https://github.com/djb88-astro/TNG_BaryonPasting",
     author="David J Barnes",
     author_email="djbarnes@mit.edu",
