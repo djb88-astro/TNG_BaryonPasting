@@ -13,14 +13,19 @@ Arguments:
   -snap : Snapshot of interest [INTEGER]
 """
 
+
 class build_table:
-    def __init__(self, mpi, sim='/n/hernquistfs3/IllustrisTNG/Runs/L205n2500TNG/output', snap=99):
-        
-        if mpi.Rank == 0: print(' > Building subfind tables...', flush=True)
+    def __init__(
+        self, mpi, sim="/n/hernquistfs3/IllustrisTNG/Runs/L205n2500TNG/output", snap=99
+    ):
 
-        self.path = '{0}/groups_{1:03d}'.format(sim, snap)
+        if mpi.Rank == 0:
+            print(" > Building subfind tables...", flush=True)
 
-        if not os.path.exists: self.error(mpi, 'PATH')
+        self.path = "{0}/groups_{1:03d}".format(sim, snap)
+
+        if not os.path.exists:
+            self.error(mpi, "PATH")
 
         self.find_files()
 
@@ -37,12 +42,14 @@ class build_table:
         # Find
         subfind_files = []
         for x in os.listdir(self.path):
-            if x.startswith('fof_subhalo_tab_'):
-                subfind_files.append('{0}/{1}'.format(self.path, x))
+            if x.startswith("fof_subhalo_tab_"):
+                subfind_files.append("{0}/{1}".format(self.path, x))
 
         # Sort
         if len(subfind_files) > 1:
-            sort_order = np.argsort(np.array([x.split('.',2)[1] for x in subfind_files], dtype=np.int))
+            sort_order = np.argsort(
+                np.array([x.split(".", 2)[1] for x in subfind_files], dtype=np.int)
+            )
             subfind_files = list(np.array(subfind_files)[sort_order])
             del sort_order
 
@@ -58,16 +65,20 @@ class build_table:
           -mpi : Instance of the MPI environment class
         """
 
-        f = h5py.File(self.files[mpi.Rank % len(self.files)], 'r')
-        self.hub      = f['Header'].attrs['HubbleParam'] 
-        self.axp      = f['Header'].attrs['Time']
-        self.redshift = f['Header'].attrs['Redshift']
-        self.omega_m  = f['Header'].attrs['Omega0']
-        self.omega_L  = f['Header'].attrs['OmegaLambda']
+        f = h5py.File(self.files[mpi.Rank % len(self.files)], "r")
+        self.hub = f["Header"].attrs["HubbleParam"]
+        self.axp = f["Header"].attrs["Time"]
+        self.redshift = f["Header"].attrs["Redshift"]
+        self.omega_m = f["Header"].attrs["Omega0"]
+        self.omega_L = f["Header"].attrs["OmegaLambda"]
         f.close()
 
-        self.rho_crit = 1.878e-29 * self.hub * self.hub \
-                        * (self.omega_m * (1.0 + self.redshift) ** 3.0 + self.omega_L)
+        self.rho_crit = (
+            1.878e-29
+            * self.hub
+            * self.hub
+            * (self.omega_m * (1.0 + self.redshift) ** 3.0 + self.omega_L)
+        )
         return
 
     def read_tables(self, mpi):
@@ -78,27 +89,29 @@ class build_table:
           -mpi : Instance of the MPI environment class
         """
 
-        self.qoi = ['Group/GroupPos',
-                    'Group/Group_M_Crit200',
-                    'Group/Group_M_Crit500',
-                    'Group/Group_M_TopHat200',
-                    'Group/Group_R_Crit200',
-                    'Group/Group_R_Crit500',
-                    'Group/Group_R_TopHat200',
-                    'Group/GroupLenType',
-                    'Group/GroupFirstSub',
-                    'Group/GroupNsubs',
-                    'Group/GroupVel',
-                    'Subhalo/SubhaloLenType']
+        self.qoi = [
+            "Group/GroupPos",
+            "Group/Group_M_Crit200",
+            "Group/Group_M_Crit500",
+            "Group/Group_M_TopHat200",
+            "Group/Group_R_Crit200",
+            "Group/Group_R_Crit500",
+            "Group/Group_R_TopHat200",
+            "Group/GroupLenType",
+            "Group/GroupFirstSub",
+            "Group/GroupNsubs",
+            "Group/GroupVel",
+            "Subhalo/SubhaloLenType",
+        ]
 
         self.split_files(mpi)
 
-        my_groups    = 0
+        my_groups = 0
         my_subgroups = 0
         for j in range(self.start, self.finish, 1):
-            f             = h5py.File(self.files[j], 'r')
-            my_groups    += f['Header'].attrs['Ngroups_ThisFile']
-            my_subgroups += f['Header'].attrs['Nsubgroups_ThisFile'] 
+            f = h5py.File(self.files[j], "r")
+            my_groups += f["Header"].attrs["Ngroups_ThisFile"]
+            my_subgroups += f["Header"].attrs["Nsubgroups_ThisFile"]
             f.close()
 
         for x in self.qoi:
@@ -113,15 +126,15 @@ class build_table:
           -mpi : Instance of the MPI environment class
         """
 
-        num_files   = int(len(self.files) / mpi.NProcs)
-        remainder   = len(self.files) % mpi.NProcs
-        self.start  = mpi.Rank * num_files
+        num_files = int(len(self.files) / mpi.NProcs)
+        remainder = len(self.files) % mpi.NProcs
+        self.start = mpi.Rank * num_files
         self.finish = (mpi.Rank + 1) * num_files
         if mpi.Rank < remainder:
-            self.start  += mpi.Rank
+            self.start += mpi.Rank
             self.finish += mpi.Rank + 1
         else:
-            self.start  += remainder
+            self.start += remainder
             self.finish += remainder
         return
 
@@ -136,17 +149,18 @@ class build_table:
           -x        : Subfind table quantity of interest [STRING]
         """
 
-        if mpi.Rank == 0: print('  -{0}'.format(x), flush=True)
+        if mpi.Rank == 0:
+            print("  -{0}".format(x), flush=True)
 
-        if x.split('/')[0] == 'Group':
-            ng  = groups
-            tag = 'Ngroups_ThisFile'
-        elif x.split('/')[0] == 'Subhalo':
-            ng  = subgroups
-            tag = 'Nsubgroups_ThisFile'
+        if x.split("/")[0] == "Group":
+            ng = groups
+            tag = "Ngroups_ThisFile"
+        elif x.split("/")[0] == "Subhalo":
+            ng = subgroups
+            tag = "Nsubgroups_ThisFile"
 
-        f         = h5py.File(self.files[0], 'r')
-        tab_type  = f[x].dtype
+        f = h5py.File(self.files[0], "r")
+        tab_type = f[x].dtype
         tab_shape = f[x].shape
         f.close()
 
@@ -158,12 +172,12 @@ class build_table:
 
         off = 0
         for j in range(self.start, self.finish, 1):
-            f    = h5py.File(self.files[j], 'r')
-            grps = f['Header'].attrs[tag]
-            if grps <= 0: 
+            f = h5py.File(self.files[j], "r")
+            grps = f["Header"].attrs[tag]
+            if grps <= 0:
                 f.close()
                 continue
-            table[off:off + grps] = f[x][:]
+            table[off : off + grps] = f[x][:]
             f.close()
             off += grps
             del grps
@@ -172,32 +186,32 @@ class build_table:
         if mpi.NProcs > 1:
             table = mpi.gather(table)
 
-        if x == 'Group/GroupPos':
+        if x == "Group/GroupPos":
             self.CoP = table
-        elif x == 'Group/Group_M_Crit200':
+        elif x == "Group/Group_M_Crit200":
             self.M200 = table
-        elif x == 'Group/Group_M_Crit500':
+        elif x == "Group/Group_M_Crit500":
             self.M500 = table
-        elif x == 'Group/Group_M_TopHat200':
+        elif x == "Group/Group_M_TopHat200":
             self.Mvir = table
-        elif x == 'Group/Group_R_Crit200':
+        elif x == "Group/Group_R_Crit200":
             self.R200 = table
-        elif x == 'Group/Group_R_Crit500':
+        elif x == "Group/Group_R_Crit500":
             self.R500 = table
-        elif x == 'Group/Group_R_TopHat200':
+        elif x == "Group/Group_R_TopHat200":
             self.Rvir = table
-        elif x == 'Group/GroupLenType':
+        elif x == "Group/GroupLenType":
             self.GrLenType = table
-        elif x == 'Group/GroupFirstSub':
+        elif x == "Group/GroupFirstSub":
             self.FirstSub = table
-        elif x == 'Group/GroupNsubs':
+        elif x == "Group/GroupNsubs":
             self.Nsubs = table
-        elif x == 'Group/GroupVel':
+        elif x == "Group/GroupVel":
             self.Vbulk = table
-        elif x == 'Subhalo/SubhaloLenType':
+        elif x == "Subhalo/SubhaloLenType":
             self.SubLenType = table
         else:
-            self.error(mpi, 'TABLE_STORE')
+            self.error(mpi, "TABLE_STORE")
         del table
         return
 
@@ -210,51 +224,54 @@ class build_table:
           -cut : Variable determining haloes to select - [STRING, LIST or FLOAT]
         """
 
-        if cut == 'MAX':
+        if cut == "MAX":
             idx = np.where(self.M200 == np.max(self.M200))[0]
         elif isinstance(cut, list):
             idx = np.array(cut)
         else:
             idx = np.where(self.M200 * ct.Mtng_Msun / self.hub >= cut)[0]
 
-        tmp  = np.arange(len(self.M200), dtype=np.int)
+        tmp = np.arange(len(self.M200), dtype=np.int)
         tags = []
-        for x in idx: tags.append('halo_{0:06d}'.format(tmp[x]))
+        for x in idx:
+            tags.append("halo_{0:06d}".format(tmp[x]))
         self.tags = np.array(tags)
         del tmp, tags
 
         for x in self.qoi:
-            if x == 'Group/GroupPos':
-                self.CoP  = self.CoP[idx] * ct.kpc_cm * self.axp/self.hub
-            elif x == 'Group/Group_M_Crit200':
+            if x == "Group/GroupPos":
+                self.CoP = self.CoP[idx] * ct.kpc_cm * self.axp / self.hub
+            elif x == "Group/Group_M_Crit200":
                 self.M200 = self.M200[idx] * ct.Msun_g / self.hub
-            elif x == 'Group/Group_M_Crit500':
+            elif x == "Group/Group_M_Crit500":
                 self.M500 = self.M500[idx] * ct.Msun_g / self.hub
-            elif x == 'Group/Group_M_TopHat200':
+            elif x == "Group/Group_M_TopHat200":
                 self.Mvir = self.Mvir[idx] * ct.Msun_g / self.hub
-            elif x == 'Group/Group_R_Crit200':
+            elif x == "Group/Group_R_Crit200":
                 self.R200 = self.R200[idx] * ct.kpc_cm * self.axp / self.hub
-            elif x == 'Group/Group_R_Crit500':
+            elif x == "Group/Group_R_Crit500":
                 self.R500 = self.R500[idx] * ct.kpc_cm * self.axp / self.hub
-            elif x == 'Group/Group_R_TopHat200':
+            elif x == "Group/Group_R_TopHat200":
                 self.Rvir = self.Rvir[idx] * ct.kpc_cm * self.axp / self.hub
-            elif x == 'Group/GroupLenType':
-                offsets        = np.zeros(self.GrLenType.shape, dtype=np.int)
-                offsets[1:]    = np.cumsum(self.GrLenType[:-1], axis=0)
+            elif x == "Group/GroupLenType":
+                offsets = np.zeros(self.GrLenType.shape, dtype=np.int)
+                offsets[1:] = np.cumsum(self.GrLenType[:-1], axis=0)
                 self.GrLenType = self.GrLenType[idx]
-                self.OffType   = offsets[idx]
+                self.OffType = offsets[idx]
                 del offsets
-            elif x == 'Group/GroupFirstSub':
+            elif x == "Group/GroupFirstSub":
                 self.FirstSub = self.FirstSub[idx]
-            elif x == 'Group/GroupNsubs':
+            elif x == "Group/GroupNsubs":
                 self.Nsubs = self.Nsubs[idx]
-            elif x == 'Group/GroupVel':
+            elif x == "Group/GroupVel":
                 self.Vbulk = self.Vbulk[idx] * ct.km_cm / self.axp
-            elif x == 'Subhalo/SubhaloLenType':
+            elif x == "Subhalo/SubhaloLenType":
                 store = []
                 for j in range(0, len(idx), 1):
-                    tmp         = self.SubLenType[self.FirstSub[j]:self.FirstSub[j]+self.Nsubs[j]]
-                    offsets     = np.zeros(tmp.shape, dtype=np.int)
+                    tmp = self.SubLenType[
+                        self.FirstSub[j] : self.FirstSub[j] + self.Nsubs[j]
+                    ]
+                    offsets = np.zeros(tmp.shape, dtype=np.int)
                     offsets[1:] = np.cumsum(tmp[:-1], axis=0)
                     store.append(offsets)
                     del tmp, offsets
@@ -272,14 +289,14 @@ class build_table:
         """
 
         if mpi.Rank == 0:
-            print('ERROR:', flush=True)
-            if code is 'PATH':
-                print('   Path supplied does not exist!', flush=True)
-            elif code is 'FILES':
-                print('   No subfind files found in specificed path!', flush=True)
-            elif code is 'TABLE_STORE':
-                print('   Subfind table is not specified for storage!', flush=True)
-            print('--> EXITING!', flush=True)
+            print("ERROR:", flush=True)
+            if code is "PATH":
+                print("   Path supplied does not exist!", flush=True)
+            elif code is "FILES":
+                print("   No subfind files found in specificed path!", flush=True)
+            elif code is "TABLE_STORE":
+                print("   Subfind table is not specified for storage!", flush=True)
+            print("--> EXITING!", flush=True)
         mpi.comm.Barrier()
         quit()
         return
