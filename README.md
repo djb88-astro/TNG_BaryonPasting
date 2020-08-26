@@ -4,4 +4,4 @@ Due to the need to for properties that extend well beyond what is traditionally 
 This is due to TNG's data store approach, which organises particles into groups defined by a Friend-of-Friend's percolation algorithm and then places particles outside of groups together at the end.
 Reading the entire snapshot requires a substantial amount (TBs) of memory due to the numerical resolution and size of the TNG simulations.
 Additionally, there is heavy use of MPI functions to split the work and make the computation of many properties for many halos tractable.
-Therefore, feel free to use this code, but make sure you have a HPC facilty handy.
+Therefore, feel free to use this code, but make sure you have a HPC facility handy.
