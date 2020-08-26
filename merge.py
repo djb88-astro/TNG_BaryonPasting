@@ -3,6 +3,16 @@ import h5py
 import numpy as np
 
 def copy_file_struct(f, hmap, fo):
+    """
+    Iteratively copy a HDF5 file structure to a new file
+
+    Arguments:
+      -f    : File from which to copy [OPEN HDF5 file handle]
+      -hmap : Current file object of interest to copy from
+      -fo   : File to copy structure to [OPEN HDF5 file handle]
+    """
+
+    # First, see if object is a group
     if type(hmap) == h5py._hl.group.Group:
         name = hmap.name.encode('ascii')
 
@@ -28,6 +38,7 @@ def copy_file_struct(f, hmap, fo):
                 atts = f[name][w].attrs.keys()
                 if len(atts) > 0:
                     for v in atts: dset.attrs[v] = f[name][w].attrs[v]
+    # Otherwise deal with the dataset
     elif type(hmap) ==  h5py._hl.dataset.Dataset:
         name   = hmap.name.encode('ascii')
         tmp    = np.zeros(f[name][:].shape, dtype=f[name][:].dtype)
@@ -42,17 +53,23 @@ def copy_file_struct(f, hmap, fo):
 def merge_outputs(outputs):
     """
     Merge all outputs from different processors into one file
+
+    Arguments:
+      -outputs : Search term for output files of interest [STRING]
     """
 
     print(' > Merging {0}*'.format(outputs))
+    # Find outputs of interest
     files = []
     for y in os.listdir('output/'):
         if y.startswith(outputs): files.append('output/{0}'.format(y))
     files.sort()
 
+    # Create output file
     flib = 'output/{0}.hdf5'.format(outputs)
     outf = h5py.File(flib, 'w')
 
+    # Loop over files of interest, iteratively copying data to consolidated output file
     for y in files:
         if y == flib: continue
         print('  -{0}'.format(y))
