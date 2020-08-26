@@ -10,3 +10,9 @@ run_*
 # Various testing directories
 src/*
 store/*
+
+# Additional examples
+Examples/*300*
+
+# Output directory
+output/
