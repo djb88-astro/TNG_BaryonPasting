@@ -37,8 +37,7 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, Nbin
     volume.tag_subhalo_particles(mpi, subfind_table)
 
     # Now select halos of interest
-    # subfind_table.select_halos(mpi, cut=1.0e12)
-    subfind_table.select_halos(mpi, cut="MAX")
+    subfind_table.select_halos(mpi, cut=1.0e12)
     if not mpi.Rank:
         print(" > Found {0:d} halo(s)".format(len(subfind_table.tags)), flush=True)
 
@@ -79,12 +78,7 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, Nbin
         h.compute_shape(mpi, aperture="Vir", ptype="DM")
 
         # Dark matter shape profile
-        try:
-            h.compute_shape_profile(mpi, ptype="DM")
-        except:
-            h.q_dm = np.zeros(Nbins, dtype=np.float)
-            h.s_dm = np.zeros(Nbins, dtype=np.float)
-            h.Iv_dm = np.zeros((Nbins, 3, 3), dtype=np.float)
+        h.compute_shape_profile(mpi, ptype="DM")
 
         # Store halo properties in HDF5 file
         h.save(mpi)
@@ -119,7 +113,7 @@ if __name__ == "__main__":
     inputs = parser.parse_args()
 
     # Simulation of interest
-    paths = ["/n/hernquistfs3/IllustrisTNG/Runs/L75n455TNG_DM/output"]
+    paths = ["/n/hernquistfs3/IllustrisTNG/Runs/L75n1820TNG_DM/output"]
 
     # Snapshots of interest
     snapshots = np.arange(inputs.final - inputs.start + 1) + inputs.start

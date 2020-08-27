@@ -16,3 +16,6 @@ Examples/*300*
 
 # Output directory
 output/
+
+# Run files
+std.*

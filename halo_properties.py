@@ -470,14 +470,19 @@ class halo:
             sdx = np.arange(len(mass))
 
         # Actual shape calculation -- check for empty aperture
-        if len(sdx) > 0:
-            q, s, Ivectors = sh.iterative_cumulative_shape_measure(
-                pos[sdx], mass[sdx], rmax=ap
-            )
-        else:
+        if len(sdx) <= 0:
             q = 0.0
             s = 0.0
             Ivectors = np.zeros((3, 3), dtype=np.float)
+        else:
+            try:
+                q, s, Ivectors = sh.iterative_cumulative_shape_measure(
+                    pos[sdx], mass[sdx], rmax=ap
+                )
+            except:
+                q = 0.0
+                s = 0.0
+                Ivectors = np.zeros((3, 3), dtype=np.float)
 
         # Store and return
         if ptype == "GAS":
@@ -584,14 +589,19 @@ class halo:
             sdx = np.arange(len(mass))
 
         # Actual shape profile measurement -- check for no particles
-        if len(sdx) > 0:
-            q, s, Ivectors = sh.iterative_radial_shape_profile(
-                pos, mass, self.R200 / ct.Mpc_cm
-            )
-        else:
+        if len(sdx) <= 0:
             q = np.zeros(self.Nbins, dtype=np.float)
             s = np.zeros(self.Nbins, dtype=np.float)
             Ivectors = np.zeros((self.Nbins, 3, 3), dtype=np.float)
+        else:
+            try:
+                q, s, Ivectors = sh.iterative_radial_shape_profile(
+                    pos, mass, self.R200 / ct.Mpc_cm
+                )
+            except:
+                q = np.zeros(self.Nbins, dtype=np.float)
+                s = np.zeros(self.Nbins, dtype=np.float)
+                Ivectors = np.zeros((self.Nbins, 3, 3), dtype=np.float)
 
         # Store and return
         if ptype == "GAS":

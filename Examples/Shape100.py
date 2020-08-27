@@ -52,8 +52,7 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, Nbin
     del volume.inte, volume.STsft
 
     # Now select halos of interest
-    # subfind_table.select_halos(mpi, cut=1.0e12)
-    subfind_table.select_halos(mpi, cut="MAX")
+    subfind_table.select_halos(mpi, cut=1.0e12)
     if not mpi.Rank:
         print(" > Found {0:d} halo(s)".format(len(subfind_table.tags)), flush=True)
 
@@ -111,48 +110,23 @@ def measure_profile_properties(mpi, path, snap, extent=5.0, R200scale=True, Nbin
         h.compute_shape(mpi, aperture="Vir", ptype="STAR")
 
         # Dark matter shape profile
-        try:
-            h.compute_shape_profile(mpi, ptype="DM")
-        except:
-            h.q_dm = np.zeros(Nbins, dtype=np.float)
-            h.s_dm = np.zeros(Nbins, dtype=np.float)
-            h.Iv_dm = np.zeros((Nbins, 3, 3), dtype=np.float)
+        h.compute_shape_profile(mpi, ptype="DM")
 
         # Gas shape profile
-        try:
-            h.compute_shape_profile(mpi, ptype="GAS")
-        except:
-            h.q_gas = np.zeros(Nbins, dtype=np.float)
-            h.s_gas = np.zeros(Nbins, dtype=np.float)
-            h.Iv_gas = np.zeros((Nbins, 3, 3), dtype=np.float)
+        h.compute_shape_profile(mpi, ptype="GAS")
+
         # Hot gas shape profile
-        try:
-            h.compute_shape_profile(mpi, ptype="GAS_HOT")
-        except:
-            h.q_ghot = np.zeros(Nbins, dtype=np.float)
-            h.s_ghot = np.zeros(Nbins, dtype=np.float)
-            h.Iv_ghot = np.zeros((Nbins, 3, 3), dtype=np.float)
+        h.compute_shape_profile(mpi, ptype="GAS_HOT")
+
         # Gas temperature
-        try:
-            h.compute_shape_profile(mpi, ptype="GAS_TEMP")
-        except:
-            h.q_temp = np.zeros(Nbins, dtype=np.float)
-            h.s_temp = np.zeros(Nbins, dtype=np.float)
-            h.Iv_temp = np.zeros((Nbins, 3, 3), dtype=np.float)
+        h.compute_shape_profile(mpi, ptype="GAS_TEMP")
+
         # Gas pressure
-        try:
-            h.compute_shape_profile(mpi, ptype="GAS_PRES")
-        except:
-            h.q_pres = np.zeros(Nbins, dtype=np.float)
-            h.s_pres = np.zeros(Nbins, dtype=np.float)
-            h.Iv_pres = np.zeros((Nbins, 3, 3), dtype=np.float)
+        h.compute_shape_profile(mpi, ptype="GAS_PRES")
+
         # Stellar shape profile
-        try:
-            h.compute_shape_profile(mpi, ptype="STAR")
-        except:
-            h.q_star = np.zeros(Nbins, dtype=np.float)
-            h.s_star = np.zeros(Nbins, dtype=np.float)
-            h.Iv_star = np.zeros((Nbins, 3, 3), dtype=np.float)
+        h.compute_shape_profile(mpi, ptype="STAR")
+
         # Store halo properties in HDF5 file
         h.save(mpi)
 
@@ -186,7 +160,7 @@ if __name__ == "__main__":
     inputs = parser.parse_args()
 
     # Simulation of interest
-    paths = ["/n/hernquistfs3/IllustrisTNG/Runs/L75n455TNG/output"]
+    paths = ["/n/hernquistfs3/IllustrisTNG/Runs/L75n1820TNG/output"]
 
     # Snapshots of interest
     snapshots = np.arange(inputs.final - inputs.start + 1) + inputs.start
