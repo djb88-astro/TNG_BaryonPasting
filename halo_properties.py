@@ -579,7 +579,7 @@ class halo:
 
         # Remove those in substuctures -- if required
         if remove_subs:
-            if ptype == "GAS":
+            if ptype in ["GAS", "GAS_HOT", "GAS_TEMP", "GAS_PRES"]:
                 sdx = np.where(self.sub == 0)[0]
             elif ptype == "DM":
                 sdx = np.where(self.DMsub == 0)[0]
