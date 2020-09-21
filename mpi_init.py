@@ -78,6 +78,10 @@ class mpi:
     def gatherv_single(self, data, root=0):
         """
         Gather all data to a chosen task routine
+
+        Arguments:
+          -data : Array to be gathered
+          -root : Task on which to gather array [INT]
         """
 
         # Reshape to 1D if required

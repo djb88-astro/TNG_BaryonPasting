@@ -113,7 +113,7 @@ if __name__ == "__main__":
     inputs = parser.parse_args()
 
     # Simulation of interest
-    paths = ["/n/hernquistfs3/IllustrisTNG/Runs/L75n1820TNG_DM/output"]
+    paths = ["/n/hernquistfs3/IllustrisTNG/Runs/L75n910TNG_DM/output"]
 
     # Snapshots of interest
     snapshots = np.arange(inputs.final - inputs.start + 1) + inputs.start

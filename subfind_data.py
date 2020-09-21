@@ -161,6 +161,8 @@ class build_table:
 
         f = h5py.File(self.files[0], "r")
         tab_type = f[x].dtype
+        if tab_type == "float32":
+            tab_type = "float64"
         tab_shape = f[x].shape
         f.close()
 
@@ -242,11 +244,11 @@ class build_table:
             if x == "Group/GroupPos":
                 self.CoP = self.CoP[idx] * ct.kpc_cm * self.axp / self.hub
             elif x == "Group/Group_M_Crit200":
-                self.M200 = self.M200[idx] * ct.Msun_g / self.hub
+                self.M200 = self.M200[idx] * ct.Mtng_Msun * ct.Msun_g / self.hub
             elif x == "Group/Group_M_Crit500":
-                self.M500 = self.M500[idx] * ct.Msun_g / self.hub
+                self.M500 = self.M500[idx] * ct.Mtng_Msun * ct.Msun_g / self.hub
             elif x == "Group/Group_M_TopHat200":
-                self.Mvir = self.Mvir[idx] * ct.Msun_g / self.hub
+                self.Mvir = self.Mvir[idx] * ct.Mtng_Msun * ct.Msun_g / self.hub
             elif x == "Group/Group_R_Crit200":
                 self.R200 = self.R200[idx] * ct.kpc_cm * self.axp / self.hub
             elif x == "Group/Group_R_Crit500":

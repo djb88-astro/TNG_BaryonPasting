@@ -15,7 +15,7 @@ store/*
 Examples/*300*
 
 # Output directory
-output/
+output
 
 # Run files
 std.*
